@@ -113,9 +113,9 @@ torchrun \
 
 **Epic-Kitchens**
 
-Noun task [config](configs/nastad/epic_slowfast_noun_nas_retrain.py) [model](https://drive.google.com/file/d/1sAVu4N9GjRmFFcGBGgrhjh3DM3CHUw4m/view?usp=sharing)
+Noun task: [config](configs/nastad/epic_slowfast_noun_nas_retrain.py) [model](https://drive.google.com/file/d/1sAVu4N9GjRmFFcGBGgrhjh3DM3CHUw4m/view?usp=sharing)
 
-Verb task [config](configs/nastad/epic_slowfast_verb_nas_retrain.py) [model](https://drive.google.com/file/d/17QpKEW5DMhMRQq9l70zSMayTH5HHUX99/view?usp=sharing)
+Verb task: [config](configs/nastad/epic_slowfast_verb_nas_retrain.py) [model](https://drive.google.com/file/d/17QpKEW5DMhMRQq9l70zSMayTH5HHUX99/view?usp=sharing)
 
 
 
