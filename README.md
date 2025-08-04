@@ -92,24 +92,30 @@ torchrun \
 ## Results and Models
 
 **ActivityNet-1.3**
+
 [config](configs/nastad/anet_internvideo2_nas_retrain.py)
 [model](https://drive.google.com/file/d/1A6VKJAw1lBzdv6U4gifKDoBnFgoXyNOc/view?usp=sharing)
 
 **THUMOS14**
-[config](configs/nastad/thumos14_nas_retrain.py)
-[model](https://drive.google.com/file/d/1sAVu4N9GjRmFFcGBGgrhjh3DM3CHUw4m/view?usp=sharing)
+
+[config](configs/nastad/thumos14_internvideo2_nas_retrain.py)
+[model](https://drive.google.com/file/d/1O8Zc3QdnWAVF7AOs5AoUZ1moJgID5K5Q/view?usp=sharing)
 
 **HACS**
-[config](configs/nastad/hacs_nas_retrain.py)
+
+[config](configs/nastad/hacs_internvideo2_nas_retrain.py)
 [model](https://drive.google.com/file/d/17_hDDfr0-YbxMtOzot9VUaopVuj4_Ok7/view?usp=sharing)
 
 **FineAction**
-[config](configs/nastad/fineaction_nas_retrain.py)
+
+[config](configs/nastad/fineaction_internvideo2_nas_mixer_retrain.py)
 [model](https://drive.google.com/file/d/1UCTHSQDXoQuSKO3iSc-WRKm6tujqUt_H/view?usp=sharing)
 
 **Epic-Kitchens**
-Noun task [config](configs/nastad/epickitchens_nas_retrain.py) [model](https://drive.google.com/file/d/1sAVu4N9GjRmFFcGBGgrhjh3DM3CHUw4m/view?usp=sharing)
-Verb task [config](configs/nastad/epickitchens_verb_nas_retrain.py) [model](https://drive.google.com/file/d/17QpKEW5DMhMRQq9l70zSMayTH5HHUX99/view?usp=sharing)
+
+Noun task [config](configs/nastad/epic_slowfast_noun_nas_retrain.py) [model](https://drive.google.com/file/d/1sAVu4N9GjRmFFcGBGgrhjh3DM3CHUw4m/view?usp=sharing)
+
+Verb task [config](configs/nastad/epic_slowfast_verb_nas_retrain.py) [model](https://drive.google.com/file/d/17QpKEW5DMhMRQq9l70zSMayTH5HHUX99/view?usp=sharing)
 
 
 
