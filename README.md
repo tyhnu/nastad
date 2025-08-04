@@ -96,15 +96,15 @@ torchrun \
 [config](configs/nastad/anet_internvideo2_nas_retrain.py)
 [model](https://drive.google.com/file/d/1A6VKJAw1lBzdv6U4gifKDoBnFgoXyNOc/view?usp=sharing)
 
-**THUMOS14**
-
-[config](configs/nastad/thumos14_internvideo2_nas_retrain.py)
-[model](https://drive.google.com/file/d/1O8Zc3QdnWAVF7AOs5AoUZ1moJgID5K5Q/view?usp=sharing)
-
 **HACS**
 
 [config](configs/nastad/hacs_internvideo2_nas_retrain.py)
 [model](https://drive.google.com/file/d/17_hDDfr0-YbxMtOzot9VUaopVuj4_Ok7/view?usp=sharing)
+
+**THUMOS14**
+
+[config](configs/nastad/thumos14_internvideo2_nas_retrain.py)
+[model](https://drive.google.com/file/d/1O8Zc3QdnWAVF7AOs5AoUZ1moJgID5K5Q/view?usp=sharing)
 
 **FineAction**
 
