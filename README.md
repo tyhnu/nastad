@@ -1,5 +1,5 @@
 
-# NAS-TAD: Neural Architecture Search for Temporal Action Detection
+# Information-Bottleneck Guided Hybrid Neural Architecture Search for Temporal Action Detection in Untrimmed Videos
 
 ## Installation
 
