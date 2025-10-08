@@ -56,7 +56,7 @@ data/
 - `config` is the path of the config file.
 
 For example:
-- Training NAS-TAD on ActivityNet with 4 GPU.
+- Training NAS-TAD on ActivityNet with 4 GPUs.
 ```bash
 torchrun \
     --nnodes=1 \
@@ -77,7 +77,7 @@ torchrun \
 - `path` is the path of the checkpoint file.
 
 For example:
-- Testing NAS-TAD on ActivityNet with 4 GPU.
+- Testing NAS-TAD on ActivityNet with 4 GPUs.
 ```bash
 torchrun \
     --nnodes=1 \
