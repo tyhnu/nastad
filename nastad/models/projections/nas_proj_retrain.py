@@ -47,7 +47,6 @@ class NASProjRetrain(nn.Module):
             num_head=4,  # number of heads in transformer
             drop_path_rate=0.3,
             input_noise=0.0,
-            all_one=True,
 
     ):
         super().__init__()
@@ -70,7 +69,6 @@ class NASProjRetrain(nn.Module):
         self.max_seq_len = max_seq_len
         self.input_pdrop = nn.Dropout1d(p=input_pdrop) if input_pdrop > 0 else None
         self.input_noise = input_noise
-        self.all_one = all_one
         self.choice = choice
 
 
@@ -322,7 +320,7 @@ class SelectiveBlock(nn.Module):
             self.downsample = None
 
         self.num_heads = num_head
-        self.register_buffer("mask", torch.tril(torch.ones(self.seq_len, self.seq_len)).view(1, 1, self.seq_len, self.seq_len)) # 自动处理序列长度
+        self.register_buffer("mask", torch.tril(torch.ones(self.seq_len, self.seq_len)).view(1, 1, self.seq_len, self.seq_len))  # causal mask sized to seq_len
 
     def forward(self, hidden_states, choice=0):
         batch, seqlen, dim = hidden_states.shape

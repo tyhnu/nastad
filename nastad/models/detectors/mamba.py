@@ -228,32 +228,32 @@ class VideoMambaSuiteNASIB(SingleStageDetector):
         whitelist_weight_modules = (nn.Linear, nn.Conv1d, nn.Conv2d)
         blacklist_weight_modules = (nn.LayerNorm, nn.GroupNorm)
 
-        # 参数分组逻辑：决定哪些参数应用 weight decay，哪些不应用
+        # parameter grouping logic: decide which parameters get weight decay
         for mn, m in self.named_modules():
             for pn, p in m.named_parameters():
-                fpn = "%s.%s" % (mn, pn) if mn else pn  # 获取完整参数名称
+                fpn = "%s.%s" % (mn, pn) if mn else pn  # full parameter name
 
-                # 排除 backbone 的参数
+                # exclude backbone parameters
                 if fpn.startswith("backbone"):
                     continue
 
-                # 不进行 weight decay 的情况：
+                # cases with no weight decay:
                 if pn.endswith("bias"):
-                    # 所有 bias 不进行 weight decay
+                    # all biases are not decayed
                     no_decay.add(fpn)
                 elif pn.endswith("scale") and isinstance(m, (Scale, AffineDropPath)):
-                    # 自定义的 Scale 和 AffineDropPath 层的 scale 参数
+                    # scale parameter of the custom Scale / AffineDropPath layers
                     no_decay.add(fpn)
                 elif pn.endswith("rel_pe"):
-                    # 相对位置编码参数不进行 weight decay
+                    # relative position encoding parameters are not decayed
                     no_decay.add(fpn)
 
-                # 进行 weight decay 的情况（白名单模块）：
+                # cases with weight decay (whitelist modules):
                 elif pn.endswith("weight") and isinstance(m, whitelist_weight_modules):
-                    # 白名单模块（如 Linear、Conv1d、Conv2d）的 weight 参数
+                    # weight parameters of whitelist modules (Linear, Conv1d, Conv2d)
                     decay.add(fpn)
 
-                # 特殊情况处理（Mamba 模型相关参数）：
+                # special cases (Mamba-related parameters):
                 elif (
                     pn.endswith("A_log")
                     or pn.endswith("D_b")
@@ -262,10 +262,10 @@ class VideoMambaSuiteNASIB(SingleStageDetector):
                     or pn.endswith("forward_embed")
                     or pn.endswith("backward_embed")
                 ):
-                    # Mamba 模型中的特殊参数，需要进行 weight decay
+                    # special Mamba parameters that should be decayed
                     decay.add(fpn)
 
-                # 黑名单模块的 weight 参数不进行 weight decay
+                # weight parameters of blacklist modules are not decayed
                 elif pn.endswith("weight") and isinstance(m, blacklist_weight_modules):
                     no_decay.add(fpn)
 
@@ -297,11 +297,11 @@ class VideoMambaSuiteNASIB(SingleStageDetector):
             x, masks, choice = self.projection(x, masks)
 
         if self.with_neck:
-            x, masks = self.neck(x, masks)  # z_list: 多尺度特征列表 [z0, z1, z2]
+            x, masks = self.neck(x, masks)  # z_list: multi-scale feature list [z0, z1, z2]
         else:
-            x = [x]  # 单尺度特征
+            x = [x]  # single-scale feature
 
-        # 保留原始检测任务逻辑
+        # keep the original detection task logic
         if self.with_rpn_head:
             rpn_losses,mi = self.rpn_head.forward_train(inputs,
                 x, masks,

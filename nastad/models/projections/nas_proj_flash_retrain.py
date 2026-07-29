@@ -47,7 +47,6 @@ class NASProjFlashRetrain(nn.Module):
             num_head=4,  # number of heads in transformer
             drop_path_rate=0.3,
             input_noise=0.0,
-            all_one=True,
 
     ):
         super().__init__()
@@ -70,7 +69,6 @@ class NASProjFlashRetrain(nn.Module):
         self.max_seq_len = max_seq_len
         self.input_pdrop = nn.Dropout1d(p=input_pdrop) if input_pdrop > 0 else None
         self.input_noise = input_noise
-        self.all_one = all_one
         self.choice = choice
 
 

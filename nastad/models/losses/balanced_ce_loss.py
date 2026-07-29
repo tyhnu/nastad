@@ -27,8 +27,6 @@ class BalancedCELoss(object):
 
 
 
-
-# @LOSSES.register_module()
 @LOSSES.register_module()
 class SpacialMILoss(object):
     """Used in VSGN"""

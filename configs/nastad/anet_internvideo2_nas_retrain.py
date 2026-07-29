@@ -50,7 +50,6 @@ model = dict(
         use_abs_pe=True,
         max_seq_len=192,
         input_pdrop=0.2,
-        all_one=False
     ),
     neck=dict(in_channels=256, out_channels=256),
     rpn_head=dict(

@@ -235,7 +235,7 @@ def average_recall_vs_avg_nr_proposals(
             # Sort proposals by score.
             sort_idx = proposals_videoid["score"].argsort()[::-1]
             this_video_proposals = this_video_proposals[sort_idx, :]
-        except:
+        except KeyError:
             n = this_video_ground_truth.shape[0]
             score_lst.append(np.zeros((n, 1)))
             continue

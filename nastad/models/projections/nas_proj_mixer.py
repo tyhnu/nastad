@@ -46,7 +46,6 @@ class NASProjMixer(nn.Module):
             num_head=4,  # number of heads in transformer
             drop_path_rate=0.3,
             input_noise=0.0,
-            all_one=True,
             min_stem_layers=10
 
     ):
@@ -71,7 +70,6 @@ class NASProjMixer(nn.Module):
         self.opt_list = ['T', 'M']
         self.input_pdrop = nn.Dropout1d(p=input_pdrop) if input_pdrop > 0 else None
         self.input_noise = input_noise
-        self.all_one = all_one
         self.max_stem_layers = super_arch[1]
         self.min_stem_layers = min_stem_layers
 
@@ -168,14 +166,9 @@ class NASProjMixer(nn.Module):
 
             stem_length_array = np.array([stem_length], dtype=np.int64)
 
-            if self.all_one:
-                choice_1 = np.random.randint(3, size=stem_length)
-                choice_2 = np.array([1, 1, 1, 1, 1])  # branch 的 choice 固定
-                choice = np.concatenate((stem_length_array, choice_1, choice_2))
-            else:
-                choice_1 = np.random.randint(3, size=stem_length)
-                choice_2 = np.random.randint(3, size=self.arch[2])
-                choice = np.concatenate((stem_length_array, choice_1, choice_2))
+            choice_1 = np.random.randint(3, size=stem_length)
+            choice_2 = np.random.randint(3, size=self.arch[2])
+            choice = np.concatenate((stem_length_array, choice_1, choice_2))
         else:
             stem_length = choice[0]
         # feature projection
@@ -295,7 +288,7 @@ class MixtureCausalBlock(nn.Module):
             num_head=4,
             seq_len=192,
             qkv_bias=True,
-            choice=0,  # 新增：0-SSM，1-LinearAttention
+            choice=0,  # branch selector: 0-SSM, 1-Linear Attention, 2-Hybrid (SSM+LinearAttention)
     ):
         super().__init__()
 
@@ -362,20 +355,20 @@ class MixtureCausalBlock(nn.Module):
         else:
             self.downsample = None
 
-        # --- 新增 Linear Attention 组件 ---
+        # --- linear attention branch components ---
 
         # self.choice = choice
         self.num_heads = num_head
-        self.register_buffer("mask", torch.tril(torch.ones(self.seq_len, self.seq_len)).view(1, 1, self.seq_len, self.seq_len)) # 自动处理序列长度
+        self.register_buffer("mask", torch.tril(torch.ones(self.seq_len, self.seq_len)).view(1, 1, self.seq_len, self.seq_len))  # causal mask sized to seq_len
 
         # self.mlp_ratio = mlp_ratio
         # self.d_k = d_model // num_head
 
-        # self.seq_len = 192  # 根据实际序列长度调整
+        # self.seq_len = 192  # adjust to the actual sequence length
         # self.elu = nn.ELU()
         # self.lepe = nn.Conv1d(self.d_inner, self.d_inner, 3, padding=1, groups=d_model)  # 1D LePE
-        # self.rope = RoPE(self.seq_len, self.d_inner)  # RoPE 位置编码（需从 mlla.py 导入）
-        # self.register_buffer("causal_mask", torch.tril(torch.ones(self.seq_len, self.seq_len)).view(1, 1, self.seq_len, self.seq_len)) # 自动处理序列长度
+        # self.rope = RoPE(self.seq_len, self.d_inner)  # RoPE positional encoding (import from mlla.py)
+        # self.register_buffer("causal_mask", torch.tril(torch.ones(self.seq_len, self.seq_len)).view(1, 1, self.seq_len, self.seq_len)) # causal mask sized to seq_len
 
     def forward(self, hidden_states, choice=0):
         batch, seqlen, dim = hidden_states.shape
@@ -399,26 +392,26 @@ class MixtureCausalBlock(nn.Module):
         x_f, x_b = torch.chunk(xz, 2, dim=1)
 
         A = -torch.exp(self.A_log.float())
-        # x, z = xz.chunk(2, dim=1)  # x 和 z 分别为输入投影的两部分
+        # x, z = xz.chunk(2, dim=1)  # split into the two halves of the input projection
         if conv_state is not None:
-            # 使用 F.pad 填充卷积状态，使得卷积操作在序列长度不足时不会出错
-            conv_state.copy_(F.pad(x_f, (self.d_conv - x.shape[-1], 0)))  # 更新卷积状态 (B D W)
+            # pad the conv state so the convolution stays valid for short sequences
+            conv_state.copy_(F.pad(x_f, (self.d_conv - x.shape[-1], 0)))  # update conv state (B D W)
 
-            # 执行一维卷积并进行激活操作 (如果存在加速的卷积函数，则使用加速路径)
-        if causal_conv1d_fn is None:  # 如果没有使用加速卷积函数
-            x = self.act(self.conv1d(x_f)[..., :seqlen])  # 常规卷积操作并激活
-        else:  # 使用加速卷积函数
+            # run the 1D causal conv followed by the activation
+        if causal_conv1d_fn is None:  # fused causal conv kernel unavailable
+            x = self.act(self.conv1d(x_f)[..., :seqlen])  # regular conv + activation
+        else:  # use the fused causal conv kernel
             x = causal_conv1d_fn(
-                x=x_f,  # 输入
-                weight=rearrange(self.conv1d.weight, "d 1 w -> d w"),  # 调整卷积权重
-                bias=self.conv1d.bias,  # 卷积偏置
-                activation=self.activation,  # 激活函数 (silu 或 swish)
+                x=x_f,  # input
+                weight=rearrange(self.conv1d.weight, "d 1 w -> d w"),  # reshape the conv weight
+                bias=self.conv1d.bias,  # conv bias
+                activation=self.activation,  # activation function (silu / swish)
             )
         # x_qk=self.qk_proj(rearrange(x, "b d l -> (b l) d"))
-        # dt, qk = torch.split(x_qk, [self.dt_rank, 2*self.d_inner], dim=-1)  # 分割为 dt, B, C
+        # dt, qk = torch.split(x_qk, [self.dt_rank, 2*self.d_inner], dim=-1)  # split into dt, B, C
         # print("x_dbl.shape:",x_dbl.shape)
 
-        if choice == 0:  # SSM 执行路径
+        if choice == 0:  # SSM branch
             # x_t, z_t = torch.chunk(x, 2, dim=1)
             B, D, L = x.shape
             # print("x.shape:",x.shape)
@@ -444,18 +437,18 @@ class MixtureCausalBlock(nn.Module):
 
             out = x * F.silu(x_b)
 
-        elif choice == 1:  # Linear Attention 执行路径
+        elif choice == 1:  # Linear Attention branch
             bc= self.bc(rearrange(x, "b d l -> (b l) d"))
-            dt, B, C = torch.split(bc, [self.dt_rank, self.d_state, self.d_state], dim=-1)  # 分割为 dt, B, C
-            B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()  # 重塑 B
-            C = rearrange(C, "(b l) dstate -> b dstate l", l=seqlen).contiguous()  # 重塑 C
+            dt, B, C = torch.split(bc, [self.dt_rank, self.d_state, self.d_state], dim=-1)  # split into dt, B, C
+            B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()  # reshape B
+            C = rearrange(C, "(b l) dstate -> b dstate l", l=seqlen).contiguous()  # reshape C
 
-            dt = self.dt_proj.weight @ dt.t()  # 对时间常数 dt 进行线性变换
-            dt = rearrange(dt, "d (b l) -> b d l", l=seqlen)  # 重塑为 (b, d, l)
+            dt = self.dt_proj.weight @ dt.t()  # project the time-step dt
+            dt = rearrange(dt, "d (b l) -> b d l", l=seqlen)  # reshape to (b, d, l)
 
             assert self.activation in ["silu", "swish"]
 
-            # 使用 selective_scan_fn 进行状态空间模型计算
+            # run the selective state-space scan
             out = selective_scan_fn(
                 x,
                 dt,
@@ -467,29 +460,29 @@ class MixtureCausalBlock(nn.Module):
                 delta_bias=self.dt_proj.bias.float(),
                 delta_softplus=True,
             )
-            # 如果存在状态空间模型的状态缓存
+            # update the SSM state cache if present
             if ssm_state is not None:
-                out, last_state = out  # 更新最后的状态
-                ssm_state.copy_(last_state)  # 将更新后的状态缓存起来
+                out, last_state = out  # unpack the updated state
+                ssm_state.copy_(last_state)  # cache the updated state
 
-            # 将输出 y 重新调整维度 (B, D, L) -> (B, L, D)
+            # reshape the output y from (B, D, L) -> (B, L, D)
             # y = rearrange(y, "b d l -> b l d")
-            # 通过输出层的线性投影恢复原始特征维度
+            # project back to the original feature dim via the output layer
             # out = out * F.silu(z_t)
 
             # y = attn_out.transpose(1, 2).reshape(batch, seqlen, -1)
-        elif choice == 2:
+        elif choice == 2:  # hybrid branch: SSM + linear attention
             bc = self.bc(rearrange(x, "b d l -> (b l) d"))
-            dt, B, C = torch.split(bc, [self.dt_rank, self.d_state, self.d_state], dim=-1)  # 分割为 dt, B, C
-            B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()  # 重塑 B
-            C = rearrange(C, "(b l) dstate -> b dstate l", l=seqlen).contiguous()  # 重塑 C
+            dt, B, C = torch.split(bc, [self.dt_rank, self.d_state, self.d_state], dim=-1)  # split into dt, B, C
+            B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()  # reshape B
+            C = rearrange(C, "(b l) dstate -> b dstate l", l=seqlen).contiguous()  # reshape C
 
-            dt = self.dt_proj.weight @ dt.t()  # 对时间常数 dt 进行线性变换
-            dt = rearrange(dt, "d (b l) -> b d l", l=seqlen)  # 重塑为 (b, d, l)
+            dt = self.dt_proj.weight @ dt.t()  # project the time-step dt
+            dt = rearrange(dt, "d (b l) -> b d l", l=seqlen)  # reshape to (b, d, l)
 
             assert self.activation in ["silu", "swish"]
 
-            # 使用 selective_scan_fn 进行状态空间模型计算
+            # run the selective state-space scan
             out_m = selective_scan_fn(
                 x,
                 dt,
@@ -501,10 +494,10 @@ class MixtureCausalBlock(nn.Module):
                 delta_bias=self.dt_proj.bias.float(),
                 delta_softplus=True,
             )
-            # 如果存在状态空间模型的状态缓存
+            # update the SSM state cache if present
             if ssm_state is not None:
-                out, last_state = out  # 更新最后的状态
-                ssm_state.copy_(last_state)  # 将更新后的状态缓存起来
+                out, last_state = out  # unpack the updated state
+                ssm_state.copy_(last_state)  # cache the updated state
 
             B, D, L = x.shape
             # print("x.shape:",x.shape)

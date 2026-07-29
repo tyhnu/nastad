@@ -67,8 +67,9 @@ class ConvModule(nn.Module):
 
             if act_type == "relu":
                 self.act = nn.ReLU(inplace=True, **act_cfg)
-            else:  # other type
-                self.act = eval(act_type)(**act_cfg)
+            else:  # other type, e.g. "GELU", "SiLU"
+                assert hasattr(nn, act_type), f"Unsupported activation type: {act_type}"
+                self.act = getattr(nn, act_type)(**act_cfg)
 
         # init weights
         self.apply(self.__init_weights__)

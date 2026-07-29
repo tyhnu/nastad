@@ -132,7 +132,7 @@ class mAP:
             for result in v:
                 try:
                     label = self.activity_index[result["label"]]
-                except:
+                except KeyError:
                     # this is because the predicted label is not in annotation
                     # such as the some classes only exists in train split, but not in val split
                     label = len(self.activity_index)

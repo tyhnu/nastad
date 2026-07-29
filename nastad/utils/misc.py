@@ -30,7 +30,7 @@ def update_workdir(cfg, exp_id, gpu_num):
 def create_folder(folder_path):
     dir_name = os.path.expanduser(folder_path)
     if not os.path.exists(dir_name):
-        os.makedirs(dir_name, mode=0o777, exist_ok=True)
+        os.makedirs(dir_name, exist_ok=True)
 
 
 def save_config(cfg, folder_path):

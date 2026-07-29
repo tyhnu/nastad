@@ -41,7 +41,6 @@ def parse_args():
     parser.add_argument("--not_eval", action="store_true", help="whether not to eval, only do inference")
     parser.add_argument("--disable_deterministic", action="store_true", help="disable deterministic for faster speed")
     parser.add_argument("--cfg-options", nargs="+", action=DictAction, help="override settings")
-    parser.add_argument("--all_one", action="store_true", help="random seed")
     parser.add_argument('--max-epochs', type=int, default=10)
     # parser.add_argument('--select-num', type=int, default=25)
     parser.add_argument('--select-num', type=int, default=5)
@@ -120,7 +119,7 @@ class EvolutionSearcher(object):
     def load_checkpoint(self):
         if not os.path.exists(self.checkpoint_path):
             return False
-        info = torch.load(self.checkpoint_path)
+        info = torch.load(self.checkpoint_path, map_location="cpu")
         self.memory = info['memory']
         self.candidates = info['candidates']
         self.vis_dict = info['vis_dict']
@@ -198,17 +197,6 @@ class EvolutionSearcher(object):
             for cand in cands:
                 yield cand
 
-    # def get_random_cand(self):
-    #
-    #     choice_1 = np.random.randint(2, size=self.args.size)
-    #     if self.args.all_one:
-    #         choice_2 = np.array([1, 1, 1, 1, 1])
-    #     else:
-    #         choice_2 = np.random.randint(2, size=5)
-    #     choice = np.concatenate((choice_1, choice_2)).tolist()
-    #
-    #     return tuple(choice)
-
     def get_random_cand(self):
         max_stem_length = self.args.max_size
         min_stem_length = self.args.min_size
@@ -216,11 +204,8 @@ class EvolutionSearcher(object):
 
         choice_1 = np.random.randint(3, size=stem_length)
 
-        # 生成 branch 的 choice（固定长度 5）
-        if self.args.all_one:
-            choice_2 = np.array([2, 2, 2, 2, 2])  # 固定选择
-        else:
-            choice_2 = np.random.randint(3, size=5)
+        # branch choice (fixed length 5)
+        choice_2 = np.random.randint(3, size=5)
 
         stem_length_array = np.array([stem_length], dtype=np.int64)
         choice = np.concatenate((stem_length_array, choice_1, choice_2)).tolist()
@@ -260,7 +245,6 @@ class EvolutionSearcher(object):
                     cand[idx]= random.randint(0,2)
                 # print("rank{}, after mutation is {}".format(self.args.rank, cand))
             return tuple(cand)
-
         cand_iter = self.stack_random_cand(random_func)
         # print(cand_iter)
         while len(res) < mutation_num and max_iters > 0:
@@ -282,7 +266,7 @@ class EvolutionSearcher(object):
         max_iters = 10 * crossover_num
 
         def random_func():
-            max_attempts = max_iters  # 最大尝试次数
+            max_attempts = max_iters  # maximum number of attempts
             while max_attempts > 0:
                 p1 = list(random.choice(self.keep_top_k[k]))
                 p2 = list(random.choice(self.keep_top_k[k]))
@@ -298,11 +282,11 @@ class EvolutionSearcher(object):
             cross_idx = random.randint(1, total_length - 1)
             cross_length = random.randint(1, total_length - cross_idx)
 
-            # 执行交叉
+            # perform the crossover
             if cross_idx + cross_length <= total_length:
                 p1[cross_idx:cross_idx+cross_length] = p2[cross_idx:cross_idx+cross_length]
             else:
-                # 备选策略：随机交换一个位置
+                # fallback strategy: randomly swap a single position
                 swap_idx = random.randint(1, total_length - 1)
                 p1[swap_idx] = p2[swap_idx]
 

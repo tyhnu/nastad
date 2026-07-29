@@ -43,7 +43,7 @@ dataset = dict(
 )
 
 model = dict(
-    projection=dict(in_channels=3200, out_channels=256, use_abs_pe=True, max_seq_len=192, input_pdrop=0.2, all_one=False),
+    projection=dict(in_channels=3200, out_channels=256, use_abs_pe=True, max_seq_len=192, input_pdrop=0.2),
     neck=dict(in_channels=256, out_channels=256),
     rpn_head=dict(in_channels=256, feat_channels=256, num_classes=1, label_smoothing=0.1, loss_weight=2.0, loss_normalizer=200),
 )

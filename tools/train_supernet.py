@@ -40,7 +40,6 @@ def parse_args():
     parser.add_argument("--cfg-options", nargs="+", action=DictAction, help="override settings")
     parser.add_argument("--min_size", type=int, default=18, help="minimum sampled stem length")
     parser.add_argument("--max_size", type=int, default=18, help="maximum sampled stem length")
-    parser.add_argument("--all_one", action="store_true", help="random seed")
     parser.add_argument("--work_dir",  type=str, help="path to work_dir file")
 
     args = parser.parse_args()
@@ -225,12 +224,7 @@ def main():
                     stem_length = np.random.randint(args.min_size, args.max_size + 1)
 
                     stem_choices = np.random.randint(3, size=stem_length)
-
-                    # 生成 branch 的 choice（固定长度 5）
-                    if args.all_one:
-                        branch_choices = np.array([1, 1, 1, 1, 1])
-                    else:
-                        branch_choices = np.random.randint(3, size=5)
+                    branch_choices = np.random.randint(3, size=5)
 
                     choice = np.concatenate(([stem_length], stem_choices, branch_choices))
 
