@@ -45,7 +45,7 @@ class LoadSnippetFrames:
         self.clip_len = clip_len
         self.frame_interval = frame_interval
         self.method = method  # resize or padding or sliding window
-        # todo: support to  change FPS
+        # TODO: support FPS changes
         # random_trunc settings
         self.trunc_len = trunc_len
         self.trunc_thresh = trunc_thresh

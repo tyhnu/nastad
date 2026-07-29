@@ -1316,12 +1316,12 @@ class ResNet3dSlowFast_inv(nn.Module):
             elif self.pretrain_type == "resnet_3d":
                 self.load_frm_resnet3d()
             elif self.pretrain_type == "resnet_2d":
-                raise NotImplemented("Loading resent2d pretrained model is not implemented")
+                raise NotImplementedError("Loading resnet2d pretrained model is not implemented")
             else:
                 # Directly load 3D model.
                 load_checkpoint(self, self.pretrained, strict=True)
         elif self.pretrained is None:
-            # Init two branch seperately.
+            # Init two branches separately.
             self.fast_path.init_weights()
             self.slow_path.init_weights()
         else:

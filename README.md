@@ -87,7 +87,7 @@ torchrun \
     tools/test.py configs/nastad/anet_internvideo2_nas_retrain.py \
     --checkpoint work_dirs/nastad_internvideo2_6b_retrain/latest.pth
 ```
-## NAS Supernet Training and Search
+## Supernet Training and Search
 
 This project follows a two-stage NAS workflow before final retraining:
 

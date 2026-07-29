@@ -33,7 +33,7 @@ class ROIAlignExtractor(nn.Module):
     def forward(self, feat_list, proposals):
         # proposals: list [K,2]: 0~tscale
 
-        if self.fpn_extract:  # todo, maybe wrong
+        if self.fpn_extract:  # TODO: verify level assignment behavior
             assert isinstance(feat_list, (list, tuple))
             num_levels = len(feat_list)
 
