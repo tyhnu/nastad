@@ -1,0 +1,15 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+
+# Native/compiled artifacts
+*.so
+*.pyd
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+
+# Common logs
+*.log

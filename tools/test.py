@@ -11,10 +11,10 @@ import torch
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel
 from mmengine.config import Config, DictAction
-from opentad.models import build_detector
-from opentad.datasets import build_dataset, build_dataloader
-from opentad.cores import eval_one_epoch
-from opentad.utils import update_workdir, set_seed, create_folder, setup_logger
+from nastad.models import build_detector
+from nastad.datasets import build_dataset, build_dataloader
+from nastad.cores import eval_one_epoch
+from nastad.utils import update_workdir, set_seed, create_folder, setup_logger
 
 
 def parse_args():

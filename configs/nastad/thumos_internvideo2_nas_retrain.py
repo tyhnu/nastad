@@ -1,6 +1,6 @@
 _base_ = [
     "../_base_/datasets/thumos-14/features_i3d_train_trunc_test_sw.py",  # dataset config
-    "../_base_/models/causaltad_nas_with_depth_mixer_retrain_thomos.py",  # model config
+    "../_base_/models/nas_retrain_thumos.py",  # model config
 ]
 
 trunc_len = 2304

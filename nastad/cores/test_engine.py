@@ -5,12 +5,12 @@ import tqdm
 import torch
 import torch.distributed as dist
 
-from opentad.utils import create_folder
-from opentad.models.utils.post_processing import build_classifier, batched_nms
-from opentad.evaluations import build_evaluator
-from opentad.datasets.base import SlidingWindowDataset
+from nastad.utils import create_folder
+from nastad.models.utils.post_processing import build_classifier, batched_nms
+from nastad.evaluations import build_evaluator
+from nastad.datasets.base import SlidingWindowDataset
 import numpy as np
-from opentad.utils.misc import AverageMeter, reduce_loss
+from nastad.utils.misc import AverageMeter, reduce_loss
 
 
 

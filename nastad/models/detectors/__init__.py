@@ -13,7 +13,7 @@ from .detr import DETR
 from .deformable_detr import DeformableDETR
 from .tadtr import TadTR
 from .vsgn import VSGN
-from .mamba import VideoMambaSuite
+from .mamba import VideoMambaSuite, VideoMambaSuiteNAS, VideoMambaSuiteNASIB
 from .nas import NASRetrain
 from .dyfadet import DyFADet
 
@@ -31,6 +31,8 @@ __all__ = [
     "TriDet",
     "TemporalMaxer",
     "VideoMambaSuite",
+    "VideoMambaSuiteNAS",
+    "VideoMambaSuiteNASIB",
     "DyFADet",
     "DETR",
     "DeformableDETR",

@@ -1,7 +1,7 @@
 import copy
 import torch
 import tqdm
-from opentad.utils.misc import AverageMeter, reduce_loss
+from nastad.utils.misc import AverageMeter, reduce_loss
 import numpy as np
 
 

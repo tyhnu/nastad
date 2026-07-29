@@ -9,6 +9,7 @@ from .dyne_proj import DynEProj
 from .causal_proj import CausalProj
 from .nas_proj_retrain import NASProjRetrain
 from .nas_proj_flash_retrain import NASProjFlashRetrain
+from .nas_proj_mixer import NASProjMixer
 
 __all__ = [
     "ConvSingleProj",
@@ -22,5 +23,6 @@ __all__ = [
     "DynEProj",
     "CausalProj",
     "NASProjFlashRetrain",
-    "NASProjRetrain"
+    "NASProjRetrain",
+    "NASProjMixer",
 ]

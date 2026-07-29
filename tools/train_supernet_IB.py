@@ -16,7 +16,7 @@ from torch.cuda.amp import GradScaler
 from mmengine.config import Config, DictAction
 from nastad.models import build_detector
 from nastad.datasets import build_dataset, build_dataloader
-from nastad.cores import train_one_epoch_supernet, val_one_epoch_supernet, eval_one_epoch_supernet, build_optimizer, build_scheduler
+from nastad.cores import train_one_epoch_supernet_ib, val_one_epoch_supernet, eval_one_epoch_supernet_IB, build_optimizer, build_scheduler
 from nastad.utils import (
     set_seed,
     update_workdir,
@@ -32,12 +32,15 @@ from nastad.utils import (
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a Temporal Action Detector")
     parser.add_argument("config", metavar="FILE", type=str, help="path to config file")
-    parser.add_argument("--seed", type=int, default=1, help="random seed")
+    parser.add_argument("--seed", type=int, default=42, help="random seed")
     parser.add_argument("--id", type=int, default=0, help="repeat experiment id")
     parser.add_argument("--resume", type=str, default=None, help="resume from a checkpoint")
     parser.add_argument("--not_eval", action="store_true", help="whether not to eval, only do inference")
     parser.add_argument("--disable_deterministic", action="store_true", help="disable deterministic for faster speed")
     parser.add_argument("--cfg-options", nargs="+", action=DictAction, help="override settings")
+    parser.add_argument("--min_size", type=int, default=18, help="minimum sampled stem length")
+    parser.add_argument("--max_size", type=int, default=18, help="maximum sampled stem length")
+    parser.add_argument("--all_one", action="store_true", help="random seed")
     parser.add_argument("--work_dir",  type=str, help="path to work_dir file")
 
     args = parser.parse_args()
@@ -95,7 +98,7 @@ def main():
         **cfg.solver.val,
     )
 
-    test_dataset = build_dataset(cfg.dataset.test, default_args=dict(logger=logger))
+    test_dataset = build_dataset(cfg.dataset.val, default_args=dict(logger=logger))
     test_loader = build_dataloader(
         test_dataset,
         rank=args.rank,
@@ -115,7 +118,7 @@ def main():
         model,
         device_ids=[args.local_rank],
         output_device=args.local_rank,
-        find_unused_parameters=True,
+        find_unused_parameters=False if use_static_graph else True,
         static_graph=use_static_graph,  # default is False, should be true when use activation checkpointing in E2E
     )
     logger.info(f"Using DDP with total {args.world_size} GPUS...")
@@ -172,12 +175,12 @@ def main():
     val_loss_best = 1e6
     val_start_epoch = cfg.workflow.get("val_start_epoch", 0)
     val_end_epoch = cfg.workflow.get("val_end_epoch", max_epoch)
-    choice = cfg.model.projection.get("choice", [0])
+
     for epoch in range(resume_epoch + 1, max_epoch):
         train_loader.sampler.set_epoch(epoch)
 
         # train for one epoch
-        train_one_epoch_supernet(
+        train_one_epoch_supernet_ib(
             train_loader,
             model,
             optimizer,
@@ -215,22 +218,39 @@ def main():
                     if args.rank == 0:
                         save_best_checkpoint(model, model_ema, epoch, work_dir=cfg.work_dir)
 
-        # eval for one epoch
         if epoch >= val_start_epoch and epoch<=val_end_epoch:
             if (cfg.workflow.val_eval_interval > 0) and ((epoch + 1) % cfg.workflow.val_eval_interval == 0):
-                eval_one_epoch_supernet(
-                    test_loader,
-                    model,
-                    cfg,
-                    logger,
-                    args.rank,
-                    epoch=epoch,
-                    choice=choice,
-                    model_ema=model_ema,
-                    use_amp=use_amp,
-                    world_size=args.world_size,
-                    not_eval=args.not_eval
-                )
+                # counter=0
+                for counter in range(10):
+                    stem_length = np.random.randint(args.min_size, args.max_size + 1)
+
+                    stem_choices = np.random.randint(3, size=stem_length)
+
+                    # 生成 branch 的 choice（固定长度 5）
+                    if args.all_one:
+                        branch_choices = np.array([1, 1, 1, 1, 1])
+                    else:
+                        branch_choices = np.random.randint(3, size=5)
+
+                    choice = np.concatenate(([stem_length], stem_choices, branch_choices))
+
+
+                    eval_one_epoch_supernet_IB(
+                        test_loader,
+                        model,
+                        cfg,
+                        logger,
+                        args.rank,
+                        epoch=epoch,
+                        choice=choice,
+                        model_ema=model_ema,
+                        use_amp=use_amp,
+                        world_size=args.world_size,
+                        not_eval=args.not_eval
+                    )
+        # eval for one epoch
+
+
 
     logger.info("Training Over...\n")
 
