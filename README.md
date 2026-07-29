@@ -91,12 +91,12 @@ torchrun \
 
 This project follows a two-stage NAS workflow before final retraining:
 
-1. Train an IB-guided supernet over a candidate architecture range.
-2. Run evolutionary search on the trained supernet to rank candidate architectures.
+1. Train a supernet over a candidate architecture range.
+2. Run evolutionary search to rank candidate architectures.
 3. Decode the searched architecture code and write the selected stem/branch choices into the retraining config.
 4. Retrain the selected architecture with `tools/train.py`.
 
-The IB supernet uses `NASProjMixer` to sample hybrid Mamba/attention architectures. `VideoMambaSuiteNASIB` combines the detector loss with the input, spatial classification, and temporal regression information bottleneck losses implemented by `ActionFormerHeadIB`.
+The supernet uses `NASProjMixer` to sample hybrid Mamba/attention architectures. `VideoMambaSuiteNASIB` combines detector and auxiliary losses implemented by `ActionFormerHeadIB`.
 
 Install the Mamba and FlashAttention dependencies before training a supernet:
 
@@ -105,7 +105,7 @@ pip install mamba-ssm causal-conv1d
 pip install flash-attn --no-build-isolation
 ```
 
-Train the IB supernet with the configured architecture range:
+Train the supernet with the configured architecture range:
 
 ```bash
 torchrun \
@@ -113,14 +113,14 @@ torchrun \
     --nproc_per_node=4 \
     --rdzv_backend=c10d \
     --rdzv_endpoint=localhost:0 \
-    tools/train_supernet_IB.py \
-    configs/nastad/anet_internvideo2_nas_supernet_ib.py \
+    tools/train_supernet.py \
+    configs/nastad/anet_internvideo2_nas_supernet.py \
     --min_size=10 \
     --max_size=20 \
-    --work_dir exps/anet/nastad_internvideo2_6b_supernet_ib
+    --work_dir exps/anet/nastad_internvideo2_6b_supernet
 ```
 
-Search a trained IB supernet with evolutionary search. The search ranks candidates by information bottleneck score and writes `checkpoint-*.pth.tar` under `work_dir`.
+Run evolutionary search. The process ranks candidates and writes `checkpoint-*.pth.tar` under `work_dir`.
 
 ```bash
 torchrun \
@@ -128,12 +128,12 @@ torchrun \
     --nproc_per_node=4 \
     --rdzv_backend=c10d \
     --rdzv_endpoint=localhost:0 \
-    tools/search_supernet_IB.py \
-    configs/nastad/anet_internvideo2_nas_supernet_ib.py \
-    --resume_supernet exps/anet/nastad_internvideo2_6b_supernet_ib/gpu4_id0/checkpoint/epoch_29.pth \
+    tools/search.py \
+    configs/nastad/anet_internvideo2_nas_supernet.py \
+    --resume_supernet exps/anet/nastad_internvideo2_6b_supernet/gpu4_id0/checkpoint/epoch_29.pth \
     --min_size=10 \
     --max_size=20 \
-    --work_dir exps/anet/nastad_internvideo2_6b_ib_search
+    --work_dir exps/anet/nastad_internvideo2_6b_search
 ```
 
 Candidate encoding is `[stem_length, *stem_choices, *branch_choices]`, where each choice is `0`, `1`, or `2`. Select a searched candidate, put its stem and branch choices into the relevant retraining configuration, then run `tools/train.py` for the final architecture.

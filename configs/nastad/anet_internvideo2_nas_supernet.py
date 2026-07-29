@@ -1,6 +1,6 @@
 _base_ = [
     "../_base_/datasets/activitynet-1.3/features_tsp_resize_trunc.py",
-    "../_base_/models/nas_supernet_ib.py",
+    "../_base_/models/nas_supernet.py",
 ]
 
 resize_length = 192
@@ -65,4 +65,4 @@ post_processing = dict(
     save_dict=False,
 )
 workflow = dict(logging_interval=20, checkpoint_interval=1, val_loss_interval=-1, val_eval_interval=1, val_start_epoch=7, val_end_epoch=20)
-work_dir = "exps/anet/nastad_internvideo2_6b_supernet_ib"
+work_dir = "exps/anet/nastad_internvideo2_6b_supernet"
