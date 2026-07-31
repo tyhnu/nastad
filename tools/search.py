@@ -41,19 +41,17 @@ def parse_args():
     parser.add_argument("--not_eval", action="store_true", help="whether not to eval, only do inference")
     parser.add_argument("--disable_deterministic", action="store_true", help="disable deterministic for faster speed")
     parser.add_argument("--cfg-options", nargs="+", action=DictAction, help="override settings")
-    parser.add_argument('--max-epochs', type=int, default=10)
-    # parser.add_argument('--select-num', type=int, default=25)
-    parser.add_argument('--select-num', type=int, default=5)
+    parser.add_argument('--max-epochs', type=int, default=50)
+    parser.add_argument('--select-num', type=int, default=10)
 
-    # parser.add_argument('--population-num', type=int, default=100)
-    parser.add_argument('--population-num', type=int, default=10)
+    parser.add_argument('--population-num', type=int, default=100)
 
     parser.add_argument('--m_prob', type=float, default=0.2)
     parser.add_argument('--s_prob', type=float, default=0.4)
-    # parser.add_argument('--crossover-num', type=int, default=25)
-    # parser.add_argument('--mutation-num', type=int, default=25)
-    parser.add_argument('--crossover-num', type=int, default=5)
-    parser.add_argument('--mutation-num', type=int, default=5)
+    parser.add_argument('--crossover-num', type=int, default=25)
+    parser.add_argument('--mutation-num', type=int, default=25)
+    parser.add_argument('--param-limits', type=float, default=50.0)
+    parser.add_argument('--min-param-limits', type=float, default=0.0)
     parser.add_argument("--min_size", type=int, default=10, help="minimum sampled stem length")
     parser.add_argument("--max_size", type=int, default=20, help="maximum sampled stem length")
     parser.add_argument("--resume_ea_path", type=str, default=None, help="resume from a checkpoint")
@@ -87,14 +85,14 @@ class EvolutionSearcher(object):
         self.m_prob = args.m_prob
         self.crossover_num = args.crossover_num
         self.mutation_num = args.mutation_num
-        # self.parameters_limits = args.param_limits
-        # self.min_parameters_limits = args.min_param_limits
+        self.parameters_limits = args.param_limits
+        self.min_parameters_limits = args.min_param_limits
         self.val_loader = val_loader
         self.output_dir = output_dir
         self.s_prob = args.s_prob
         self.memory = []
         self.vis_dict = {}
-        self.keep_top_k = {self.select_num: [], 50: []}
+        self.keep_top_k = {self.select_num: []}
         self.epoch = 0
         self.checkpoint_path = args.resume_ea_path
         self.candidates = []
@@ -137,16 +135,20 @@ class EvolutionSearcher(object):
         info = self.vis_dict[cand]
         if 'visited' in info:
             return False
-        # n_parameters = self.model_without_ddp.get_sampled_params_numel(sampled_config)
-        # info['params'] = n_parameters / 10. ** 6
+        if hasattr(self.model, "module") and hasattr(self.model.module, "get_sampled_params_numel"):
+            try:
+                n_parameters = self.model.module.get_sampled_params_numel(cand)
+            except TypeError:
+                n_parameters = self.model.module.get_sampled_params_numel(choice=cand)
+            info['params'] = n_parameters / 10. ** 6
 
-        # if info['params'] > self.parameters_limits:
-        #     print('parameters limit exceed')
-        #     return False
-        #
-        # if info['params'] < self.min_parameters_limits:
-        #     print('under minimum parameters limit')
-        #     return False
+            if info['params'] > self.parameters_limits:
+                self.logger.info('parameters limit exceed: %.2fM > %.2fM', info['params'], self.parameters_limits)
+                return False
+
+            if info['params'] < self.min_parameters_limits:
+                self.logger.info('under minimum parameters limit: %.2fM < %.2fM', info['params'], self.min_parameters_limits)
+                return False
 
         # print("rank:", utils.get_rank(), cand, info['params'])
         # print("sampled model config: {}".format(sampled_config))
@@ -279,14 +281,13 @@ class EvolutionSearcher(object):
             stem_length = p1[0]
             total_length = 1 + stem_length + 5
 
-            cross_idx = random.randint(1, total_length - 1)
-            cross_length = random.randint(1, total_length - cross_idx)
+            swap_count = 0
+            for idx in range(1, total_length):
+                if random.random() < self.s_prob:
+                    p1[idx] = p2[idx]
+                    swap_count += 1
 
-            # perform the crossover
-            if cross_idx + cross_length <= total_length:
-                p1[cross_idx:cross_idx+cross_length] = p2[cross_idx:cross_idx+cross_length]
-            else:
-                # fallback strategy: randomly swap a single position
+            if swap_count == 0:
                 swap_idx = random.randint(1, total_length - 1)
                 p1[swap_idx] = p2[swap_idx]
 
@@ -326,7 +327,7 @@ class EvolutionSearcher(object):
                 self.candidates, k=self.select_num, key=lambda x: self.vis_dict[x]['mi'])
 
             self.logger.info('epoch = {} : top {} result'.format(
-                self.epoch, len(self.keep_top_k[50])))
+                self.epoch, len(self.keep_top_k[self.select_num])))
             tmp_accuracy = []
             self.top_accuracies.append(tmp_accuracy)
 
@@ -345,9 +346,9 @@ class EvolutionSearcher(object):
             # self.update_top_k(
             #     self.candidates, k=self.select_num, key=lambda x: self.vis_dict[x]['acc'])
             self.update_top_k(
-                self.candidates, k=50, key=lambda x: self.vis_dict[x]['mi'])
+                self.candidates, k=self.select_num, key=lambda x: self.vis_dict[x]['mi'])
 
-            for i, cand in enumerate(self.keep_top_k[50]):
+            for i, cand in enumerate(self.keep_top_k[self.select_num]):
                 self.logger.info('No.{} {}, Top-1 val acc = {},'.format(
                     i + 1, cand, self.vis_dict[cand]['mi']))
 

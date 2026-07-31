@@ -131,6 +131,13 @@ torchrun \
     tools/search.py \
     configs/nastad/anet_internvideo2_nas_supernet.py \
     --resume_supernet exps/anet/nastad_internvideo2_6b_supernet/gpu4_id0/checkpoint/epoch_29.pth \
+    --max-epochs=50 \
+    --population-num=100 \
+    --select-num=10 \
+    --crossover-num=25 \
+    --mutation-num=25 \
+    --s_prob=0.4 \
+    --param-limits=50 \
     --min_size=10 \
     --max_size=20 \
     --work_dir exps/anet/nastad_internvideo2_6b_search
